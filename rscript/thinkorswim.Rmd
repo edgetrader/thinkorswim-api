@@ -1,0 +1,111 @@
+---
+title: "ThinkOrSwim API in R example"
+author: "CF"
+date: "21/06/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Summary
+
+Below shows the sample R code to submit TOS api requests to retrieve historical stock prices and stock quotes.  
+  
+  
+### Important Note  
+You will need to register as a TOS api developer.  See <https://developer.tdameritrade.com/>.  
+After which, you will need to create your own app to obtain your `Client ID`.  See video <https://www.youtube.com/watch?v=mLjtVVqp5iw>.
+  
+  
+### Import the libraries
+  
+  
+```{r import, echo=TRUE, message=FALSE}
+library(httr)
+library(jsonlite)
+library(lubridate)
+library(dplyr)
+# library(rlist)
+
+## Input your client id here
+CLIENT_ID <- 'XXXXX'
+```
+  
+  
+
+```{r clientid, echo=FALSE}
+CLIENT_ID <- 'BUHR3VE5RXUS1GAFWZA6KJEAVCDR53P1' 
+```
+  
+  
+### Price History
+
+Refer to the below links for api specifications:  
+1. <https://developer.tdameritrade.com/price-history/apis>  
+2. <https://developer.tdameritrade.com/price-history/apis/get/marketdata/%7Bsymbol%7D/pricehistory>  
+  
+&nbsp;  
+
+```{r history, echo=TRUE}
+## Update stock symbol here
+symbol <- 'AAPL'  
+
+price_endpoint <- paste0('https://api.tdameritrade.com/v1/marketdata/',
+                         symbol,'/pricehistory')
+
+## Change the price history parameters here
+payload = list(apikey = CLIENT_ID, periodType = 'day', period = '10', 
+               frequencyType = 'minute', frequency='15')
+
+request = GET(url = price_endpoint, query = payload)
+response <- content(request, as = "text", encoding = "UTF-8")
+price <- fromJSON(response, flatten = TRUE) %>% data.frame()
+price <- select(price, 
+                symbol,
+                datetime = candles.datetime,
+                open = candles.open,
+                high = candles.high,
+                low = candles.low,
+                close = candles.close,
+                volume = candles.volume
+)
+price$datetime = as_datetime(price$datetime/1000)
+
+head(price)
+tail(price)
+
+```
+  
+  
+### Stock Quotes
+
+Refer to the below links for api specifications:  
+1. <https://developer.tdameritrade.com/quotes/apis>  
+2. <https://developer.tdameritrade.com/quotes/apis/get/marketdata/%7Bsymbol%7D/quotes>  
+  
+&nbsp;  
+  
+```{r quotes}
+## Update stock symbol here
+symbol <- 'AAPL'  
+
+quotes_endpoint <- paste0('https://api.tdameritrade.com/v1/marketdata/',
+                          symbol,'/quotes')
+payload = list(apikey = CLIENT_ID)
+request <- GET(url = quotes_endpoint, query = payload)
+
+response <- content(request, as = "text", encoding = "UTF-8")
+quotes <- fromJSON(response, flatten = TRUE) %>% data.frame()
+t(quotes)
+
+```
+  
+  
+### References
+1. <https://developer.tdameritrade.com/>
+2. <https://www.youtube.com/watch?v=mLjtVVqp5iw>
+3. <https://www.youtube.com/watch?v=jpWZyd4fU7c>
